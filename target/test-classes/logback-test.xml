@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =================================================================== -->
+<!-- LogBack configuration file                                          -->
+<!-- =================================================================== -->
+<configuration>
+  <!-- log will be written relative the working directory to the running Java process -->
+  <property name="LOG_ROOT" value="jvs_logs" />
+
+  <!-- Append messages to the console -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <Pattern>%d [%t] %-2p - [%c.%method\(\)] - %m %xThrowable{full} %n</Pattern>
+    </encoder>
+  </appender>
+  
+  <appender name="SPIAUTOMATION_JPA" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_ROOT}/SPIAUTOMATION_JPA.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>${LOG_ROOT}/SPIAUTOMATION_JPA.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+        <!-- or whenever the file size reaches 10MB -->
+        <maxFileSize>10MB</maxFileSize>
+      </timeBasedFileNamingAndTriggeringPolicy>
+      <!-- keep 30 days' worth of history -->
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <!-- See http://logback.qos.ch/manual/layouts.html -->
+     <Pattern>%d [%t] %-2p - [%c.%method\(\)] - %m %xThrowable{full} %n</Pattern>
+    </encoder>
+  </appender>
+
+  <appender name="SPIAUTOMATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_ROOT}/SPIAUTOMATION.log</file> 
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>${LOG_ROOT}/SPIAUTOMATION.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+        <!-- or whenever the file size reaches 10MB -->
+        <maxFileSize>10MB</maxFileSize>
+      </timeBasedFileNamingAndTriggeringPolicy>
+      <!-- keep 30 days' worth of history -->
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <!-- See http://logback.qos.ch/manual/layouts.html -->
+     <Pattern>%d [%t] %-2p - [%c.%method\(\)] - %m %xThrowable{full} %n</Pattern>
+    </encoder>
+  </appender>
+  
+  <appender name="SPIAUTOMATION_SPRING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_ROOT}/SPIAUTOMATION_Spring.log</file>  
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>${LOG_ROOT}/SPIAUTOMATION_SPRING.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+        <!-- or whenever the file size reaches 10MB -->
+        <maxFileSize>10MB</maxFileSize>
+      </timeBasedFileNamingAndTriggeringPolicy>
+      <!-- keep 30 days' worth of history -->
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <!-- See http://logback.qos.ch/manual/layouts.html -->
+      <Pattern>%d [%t] %-2p - [%c.%method\(\)] - %m %xThrowable{full} %n</Pattern>
+    </encoder>
+  </appender>
+
+  <!-- Setup logging level for SPIAUTOMATION
+    -->
+  <logger name="org.springframework" level="warn">
+   <appender-ref ref="SPIAUTOMATION_SPRING" />
+  </logger>  
+    
+  <logger name="org.springframework.web" level="warn">
+   <appender-ref ref="SPIAUTOMATION_SPRING" />
+  </logger>  
+    
+  <logger name="org.springframework.beans.factory.xml" level="error">
+   <appender-ref ref="SPIAUTOMATION_SPRING" />
+  </logger>
+  
+  <logger name="com.volvo.jvs.SPIAUTOMATION" level="debug">
+   <appender-ref ref="SPIAUTOMATION" />
+  </logger>
+  
+  <logger name="com.volvo.jvs.integration" level="debug" >
+   <appender-ref ref="SPIAUTOMATION" />
+  </logger>
+
+  <!-- Setup logging level for OpenJPA -->
+  <logger name="openjpa" level="warn">
+    <appender-ref ref="SPIAUTOMATION_JPA" />
+  </logger>
+  
+  <logger name="openjpa.jdbc.SQL" level="error">
+    <appender-ref ref="SPIAUTOMATION_JPA" />
+  </logger>
+  
+  <!-- Setup logging level for Hibernate -->
+  <logger name="org.hibernate" level="warn">
+    <appender-ref ref="SPIAUTOMATION_JPA" />
+  </logger>
+  
+  <logger name="org.hibernate.SQL" level="error">
+    <appender-ref ref="SPIAUTOMATION_JPA" />
+  </logger>
+
+  <!-- swagger loggin -->
+  <logger name="com.mangofactory" level="warn" >
+    <appender-ref ref="SPIAUTOMATION_SPRING" />
+  </logger>
+  
+  <logger name="com.wordnik" level="warn" >
+    <appender-ref ref="SPIAUTOMATION_SPRING" />
+  </logger>
+  
+  <logger name="org.dbunit" level="error" >
+    <appender-ref ref="SPIAUTOMATION_JPA" />
+  </logger>
+  
+  <logger name="com.atomikos" level="error" >
+    <appender-ref ref="SPIAUTOMATION" />
+  </logger>
+   
+  <logger name="h2database" level="error" >
+    <appender-ref ref="SPIAUTOMATION" />
+  </logger>
+   
+  <logger name="liquibase" level="error" >
+    <appender-ref ref="SPIAUTOMATION" />
+  </logger>
+
+  <logger name="org.quartz" level="error" >
+    <appender-ref ref="SPIAUTOMATION" />
+  </logger>
+     
+  <logger name="org.apache.activemq" level="error" >
+    <appender-ref ref="SPIAUTOMATION" />
+  </logger>
+            
+  <!-- Set default log-level -->
+  <root level="info">
+    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="SPIAUTOMATION_JPA"/>
+    <appender-ref ref="SPIAUTOMATION"/>
+    <appender-ref ref="SPIAUTOMATION_SPRING"/>
+  </root>
+
+</configuration>
