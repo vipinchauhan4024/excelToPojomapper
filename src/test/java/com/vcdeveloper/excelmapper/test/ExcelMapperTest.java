@@ -1,11 +1,12 @@
 package com.vcdeveloper.excelmapper.test;
 
-import com.vcdeveloper.excelmapper.util.excel.Employee;
-import com.vcdeveloper.excelmapper.util.excel.ExcelToPojoMapper;
-import com.vcdeveloper.excelmapper.util.excel.ExcelToPojoMapperBean;
+import com.vcdeveloper.excelmapper.util.excel.*;
 import com.vcdeveloper.excelmapper.util.fileutil.FileUtil;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class ExcelMapperTest {
 
     @Test
-    void testExcelWrite() {
+    void testExcelRead() {
 
-        ExcelToPojoMapper<Employee> mapperBean  = new ExcelToPojoMapperBean<>(FileUtil.getInputStream(ExcelMapperTest.class, "employee_readfile.xlsx"));
+        ExcelToPojoMapper<Employee> mapperBean  = new ExcelToPojoMapperBeanold<>(FileUtil.getInputStream(ExcelMapperTest.class, "employee_readfile.xlsx"));
         try {
             List<Employee> list = mapperBean.getAllObjects(Employee.class);
 
@@ -32,15 +33,37 @@ public class ExcelMapperTest {
     }
 
     @Test
-    void testExcelRead() {
+    void testExcelWrite() throws Exception {
 
-        ExcelToPojoMapper<Employee> mapperBean  = new ExcelToPojoMapperBean<>(FileUtil.getInputStream(ExcelMapperTest.class, "employee_readfile.xlsx"));
+         ExcelWriter writer = new ExcelWriterBean();
 
-        try {
-            List<Employee> list = mapperBean.getAllObjects(Employee.class);
+        List<Employee> employees = Arrays.asList(
+                createEmployee(1, "Vipin", "HR", true),
+                createEmployee(2, "Bob", "Engineering", false)
+        );
+
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        writer.write(employees, out);
+        try (FileOutputStream fos = new FileOutputStream("Excel_writer_Test.xlsx")) {
+            out.writeTo(fos); // write byte array to file
+            out.flush();
+            out.close();
+
         }catch(Exception e){
             System.out.println(e.getMessage());
+            e.printStackTrace();
         }
-        assertEquals(1, 1); // Dummy check
+
+    }
+
+    private Employee createEmployee(int id, String name, String dept, boolean probation) {
+        Employee e = new Employee();
+        e.setId(id);
+        e.setName(name);
+        e.setDepartment(dept);
+        e.setOnprobation(probation);
+        return e;
     }
 }

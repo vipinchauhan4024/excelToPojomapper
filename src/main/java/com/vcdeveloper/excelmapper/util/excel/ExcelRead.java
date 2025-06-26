@@ -17,12 +17,15 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 /**
  * class is used by ExcelBeanMapper.
  */
-public class ExcelRead {
+ class ExcelRead {
     private  XSSFWorkbook workBook;
     private XSSFSheet sheet;
     private Map<Integer, MetaData> cellPojoMetadata =  new HashMap<Integer, MetaData>();
     private Map<Integer, Method>  cellIndexPojoSetterMap = new HashMap<Integer, Method>();
-    
+
+    public ExcelRead() {
+        super();
+    }
     /**
      * Creates new instance with initializing cellPojoMetadata, cellIndexPojoSetterMap.
      * @param in
@@ -30,7 +33,9 @@ public class ExcelRead {
      * @param pojoClass
      * @throws IOException
      */
-    public ExcelRead(InputStream in, String sheetName, 
+
+
+    protected ExcelRead(InputStream in, String sheetName,
             Class<?> pojoClass) throws IOException {
         workBook =  new XSSFWorkbook(in);
         sheet = workBook.getSheet(sheetName);
@@ -85,9 +90,6 @@ public class ExcelRead {
         }
     }
 
-    public ExcelRead() {
-        super();
-    }
 
     private void addMappingSetterMethod(Field field, int i, Method method, MetaData m) {
         String fieldName = field.getName();

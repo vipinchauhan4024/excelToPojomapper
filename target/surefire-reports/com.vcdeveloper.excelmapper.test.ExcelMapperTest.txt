@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.vcdeveloper.excelmapper.test.ExcelMapperTest
 -------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.392 s -- in com.vcdeveloper.excelmapper.test.ExcelMapperTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.524 s -- in com.vcdeveloper.excelmapper.test.ExcelMapperTest

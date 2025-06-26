@@ -1,5 +1,7 @@
 package com.vcdeveloper.excelmapper.util.excel;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -10,30 +12,27 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ExcelWrite {/*
+public class ExcelWriterBean implements ExcelWriter{
 
-    public static <T> void write(List<T> dataList, OutputStream out) throws Exception {
+    public  <T> void write(List<T> dataList, OutputStream out) throws Exception {
         if (dataList == null || dataList.isEmpty()) {
             throw new IllegalArgumentException("Data list is empty.");
         }
 
         Class<?> clazz = dataList.get(0).getClass();
 
-        // Get sheet name from annotation
-        ExcelSheet sheetAnnotation = clazz.getAnnotation(ExcelSheet.class);
-        String sheetName = (sheetAnnotation != null) ? sheetAnnotation.value() : "Sheet1";
 
         Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet(sheetName);
+        Sheet sheet = workbook.createSheet(PojoMetaDataReader.getSheetName(clazz));
 
         // Use LinkedHashMap to maintain order
         Map<Field, String> fieldColumnMap = new LinkedHashMap<>();
 
         for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(ExcelIgnore.class)) continue;
+            if (field.isAnnotationPresent(SkipMapping.class)) continue;
 
-            ExcelColumn col = field.getAnnotation(ExcelColumn.class);
-            String columnName = (col != null) ? col.value() : field.getName();
+
+            String columnName =  field.getName();
             field.setAccessible(true);
             fieldColumnMap.put(field, columnName);
         }
@@ -75,6 +74,6 @@ public class ExcelWrite {/*
         workbook.write(out);
         workbook.close();
     }
-*/
+
 
 }

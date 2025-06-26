@@ -12,6 +12,8 @@ import java.util.Map;
 import com.vcdeveloper.excelmapper.util.exceptions.ExcelMapperException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.ss.usermodel.CellType;
+
 
 
 /**
@@ -19,79 +21,51 @@ import org.apache.poi.xssf.usermodel.XSSFCell;
  * a file Input stream.
  * Pojo class should be annotated by @MapFromExcel(sheetName ="Testpojo") sheetName default value is "sheet1"
  * Propery which are not required to be mapped can be annotated by  @SkipMapping
- * 
+ *
  * Column name in excel should match the property name in POJO class.
  * @param <T>
- * 
+ *
  */
 public class ExcelToPojoMapperBean<T> implements ExcelToPojoMapper<T> {
 
     private InputStream inputStream;
     private ExcelRead excelRead;
-    
-    
+
+
 
     public ExcelToPojoMapperBean(InputStream inputStream) {
         super();
-      
+
         this.inputStream = inputStream;
     }
-    
-    
+
+
     @Override
-    public List<T> getAllObjectsByRowCount(Class<T> pojoClass, int totalRowsTobeMapped) throws Exception {
-        List<T> list = new ArrayList<T>();
-        if (excelRead == null) {
-            try {
-                excelRead = new ExcelRead(inputStream, PojoMetaDataReader.getSheetName(pojoClass), pojoClass);
-            } catch (IOException e) {
-                throw new ExcelMapperException("problem in reading Inpfut stream ******** ", e);
-            }
-
-        }
+    public List<T> getAllObjectsByRowCount(Class<T> pojoClass, int totalRowsToBeMapped) throws Exception {
+        ensureExcelReadInitialized(pojoClass);
         int totalRows = excelRead.getTotalRows();
-        if (totalRows < totalRowsTobeMapped) {
-            throw new ExcelMapperException("Number of Rows passes more that total rows");
-        }
-        for (int i = 1; i < totalRowsTobeMapped; i++) {
-            try {
-                list.add(getSingleObject(pojoClass, i));
-            } catch (Exception e) {
-                throw new ExcelMapperException("Exception occured while reading  row number ******** " + i, e);
-            }
 
+        if (totalRowsToBeMapped > totalRows) {
+            throw new ExcelMapperException("Requested rows (" + totalRowsToBeMapped +
+                    ") exceed total available rows (" + totalRows + ")");
         }
-        return list;
+
+        return parseAllRows(pojoClass, 1, totalRowsToBeMapped);
     }
+
 
     /**
      * Maps all rows from excel to List<T> Pojo
-     * 
+     *
      * {@inheritDoc}
      */
     @Override
-    public List<T> getAllObjects(Class<T> pojoClass)  {
-        List<T> list = new ArrayList<T>();
-        if (excelRead == null) {
-            try {
-                excelRead = new ExcelRead(inputStream, PojoMetaDataReader.getSheetName(pojoClass), pojoClass);
-            } catch (IOException e) {
-                throw new ExcelMapperException("problem in reading Inpfut stream ******** " , e);
-            }
-
-        }
-        int rows = excelRead.getTotalRows();
-        for (int i = 1; i < rows; i++) {
-            try {
-                list.add(getSingleObject(pojoClass, i));
-            } catch (Exception e) {
-                throw new ExcelMapperException("Exception occured while reading  row number ******** " + i, e);
-            }
-
-        }
-        return list;
-
+    public List<T> getAllObjects(Class<T> pojoClass) {
+        ensureExcelReadInitialized(pojoClass);
+        int totalRows = excelRead.getTotalRows();
+        return parseAllRows(pojoClass, 1, totalRows); // start from row 1
     }
+
 
     /**
      * Maps a row from excel to a single object of  T
@@ -99,38 +73,65 @@ public class ExcelToPojoMapperBean<T> implements ExcelToPojoMapper<T> {
      */
     @Override
     public T getSingleObject(Class<T> pojoClass, int rowNum) throws Exception {
-        @SuppressWarnings("unchecked")
-        T obj = (T) PojoMetaDataReader.getObject(pojoClass);
-        if (excelRead == null) {
-            excelRead = new ExcelRead(inputStream, PojoMetaDataReader.getSheetName(pojoClass), pojoClass);
+        ensureExcelReadInitialized(pojoClass);
+
+        T obj = pojoClass.getDeclaredConstructor().newInstance(); // cleaner than reflection helper
+        List<XSSFCell> cells = excelRead.getMatchingCells(rowNum);
+
+        for (XSSFCell cell : cells) {
+            if (cell != null) {
+                mapValuesToPojo(cell, obj, excelRead.getCellPojoMetadataMap());
+            }
         }
 
-        List<XSSFCell> cells = excelRead.getMatchingCells(rowNum);
-       
-        for (XSSFCell cell : cells) {
-            if(cell == null) { // if cell is blank or empty
-                continue;
-            }
-            mapValuesToPojo(cell, obj, excelRead.getCellPojoMetadataMap());
-        }
         return obj;
     }
 
-    private void mapValuesToPojo(XSSFCell cell, T obj, Map<Integer, MetaData> map) throws Exception {
-      
-        MetaData metaData = map.get(cell.getColumnIndex());
-        Method m = metaData != null ?  metaData.getSetterMethod() : null;
-        if (m == null) {
-            return;
+
+    private void ensureExcelReadInitialized(Class<T> pojoClass) {
+        if (excelRead == null) {
+            try {
+                String sheetName = PojoMetaDataReader.getSheetName(pojoClass);
+                excelRead = new ExcelRead(inputStream, sheetName, pojoClass);
+            } catch (IOException e) {
+                throw new ExcelMapperException("Error initializing ExcelRead", e);
+            }
         }
-        Object parm = getMappingTypeObject(cell, m);
-        if (parm == null) {
-            setPrimitiveDataOrEnum(obj, cell, m);
-        } else {
-            m.invoke(obj, parm);
+    }
+
+
+    private List<T> parseAllRows(Class<T> pojoClass, int startRow, int endRow) {
+        List<T> list = new ArrayList<>();
+
+        for (int i = startRow; i < endRow; i++) {
+            try {
+                T obj = getSingleObject(pojoClass, i);
+                list.add(obj);
+            } catch (Exception e) {
+                throw new ExcelMapperException("Error parsing row " + i, e);
+            }
         }
 
+        return list;
     }
+
+    private void mapValuesToPojo(XSSFCell cell, T obj, Map<Integer, MetaData> map) throws Exception {
+        MetaData metaData = map.get(cell.getColumnIndex());
+        if (metaData == null) return;
+
+        Method setter = metaData.getSetterMethod();
+        if (setter == null) return;
+
+        Class<?> targetType = setter.getParameterTypes()[0];
+        Object value = CellValueMapper.mapCellToExpectedType(cell, targetType);
+
+        if (value != null) {
+            setter.invoke(obj, value);
+        } else {
+            CellValueMapper.setPrimitiveOrEnum(obj, cell, setter);
+        }
+    }
+
 
 
     private void setPrimitiveDataOrEnum(T obj, XSSFCell cell, Method m) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException,
@@ -156,6 +157,7 @@ public class ExcelToPojoMapperBean<T> implements ExcelToPojoMapper<T> {
     }
 
     private void setInt(T obj, XSSFCell cell, Method m) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
         int i = (int) cell.getNumericCellValue();
         m.invoke(obj, i);
 
@@ -173,30 +175,71 @@ public class ExcelToPojoMapperBean<T> implements ExcelToPojoMapper<T> {
 
     }
 
-    private void setBoolean(T obj, XSSFCell cell, Method m) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        Boolean b = null;
-        if (cell.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
-            b = cell.getBooleanCellValue();
-        } else if ((cell.getCellType() == Cell.CELL_TYPE_NUMERIC)) {
-            Integer x = (int) cell.getNumericCellValue();
-            if (x != null && x == 0) {
-                b = false;
-            } else if (x != null && x == 1) {
-                b = true;
-            }
+
+    private void setBoolean(T obj, XSSFCell cell, Method m)
+            throws IllegalAccessException, InvocationTargetException {
+
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            return;
         }
-        if (b != null) {
-            m.invoke(obj, b);
-        } 
+
+        Boolean value = null;
+        CellType type = cell.getCellType();
+
+        switch (type) {
+            case BOOLEAN:
+                value = cell.getBooleanCellValue();
+                break;
+
+            case NUMERIC:
+                int intVal = (int) cell.getNumericCellValue();
+                value = intVal == 1;
+                break;
+
+            case STRING:
+                String text = cell.getStringCellValue().trim().toLowerCase();
+                if (text.equals("true") || text.equals("yes") || text.equals("1")) {
+                    value = true;
+                } else if (text.equals("false") || text.equals("no") || text.equals("0")) {
+                    value = false;
+                }
+                break;
+
+            default:
+                // Do nothing for other cell types (e.g., FORMULA, ERROR)
+                break;
+        }
+
+        if (value != null) {
+            m.invoke(obj, value);
+        }
     }
 
+
+
     private String getStringValue(XSSFCell cell) {
-        if (cell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-            return new Integer((int) cell.getNumericCellValue()).toString();
-        } else {
-            return cell.getStringCellValue();
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            return "";
+        }
+
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+
+            case NUMERIC:
+                return String.valueOf((int) cell.getNumericCellValue());
+
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+
+            case FORMULA:
+                return cell.getCellFormula(); // Or evaluate it via FormulaEvaluator
+
+            default:
+                return "";
         }
     }
+
 
     private Object getMappingTypeObject(XSSFCell cell, Method m) {
         Class<?> classType = m.getParameterTypes()[0];
@@ -218,15 +261,13 @@ public class ExcelToPojoMapperBean<T> implements ExcelToPojoMapper<T> {
 
     @Override
     public void setInputStream(InputStream inputStream) {
-       this.inputStream = inputStream;
-        
+        this.inputStream = inputStream;
+
     }
-    
+
     public InputStream getInputStream () {
         return inputStream;
     }
-
-  
 
 
 }
